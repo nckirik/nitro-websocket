@@ -3,7 +3,7 @@ import { getQuery } from 'ufo';
 import type { Peer } from 'crossws';
 
 import type { ChatMessage } from '../types';
-import { ChatService } from '../chat-service';
+import { ChatService } from '../char-service';
 
 const getUserName = (peer: Peer) => getQuery(peer.url)['userName'] as string;
 
