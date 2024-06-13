@@ -1,0 +1,119 @@
+<html>
+  <head>
+    <title>Chat</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="icon" type="image/png" href="favicon-chat-cloud-16.png" sizes="16x16" />
+    <link rel="icon" type="image/png" href="favicon-chat-cloud-32.png" sizes="32x32" />
+    <link rel="icon" type="image/png" href="favicon-chat-cloud-96.png" sizes="96x96" />
+  </head>
+  <body>
+    <div class="flex flex-column h-100">
+      <div class="container flex h-2rem border-group">
+        <input id="edtUserName" class="border flex-1" placeholder="Enter a Username" value="User X" />
+        <div id="txtStatus" class="border flex-1 bg-white p-1">Not Connected</div>
+        <button id="btnConnect" class="border bg-blue" style="width: 8rem">Connect</button>
+      </div>
+      <div id="txtChat" class="container flex-1 border bg-white p-1"></div>
+      <div class="container flex h-2rem border-group">
+        <input id="edtMessage" class="border flex-1 bg-white" placeholder="Enter a Message" readonly />
+        <button id="btnSend" class="border bg-blue" style="width: 8rem" disabled>Send</button>
+      </div>
+    </div>
+
+    <script>
+      let ws;
+
+      const txtChat = document.getElementById('txtChat');
+      const txtStatus = document.getElementById('txtStatus');
+      const btnConnect = document.getElementById('btnConnect');
+
+      const edtUserName = document.getElementById('edtUserName');
+      const edtMessage = document.getElementById('edtMessage');
+      const btnSend = document.getElementById('btnSend');
+
+      btnConnect.addEventListener('click', connect);
+      btnSend.addEventListener('click', sendMessage);
+
+      function connect() {
+        if (ws) {
+          ws?.close();
+          ws = undefined;
+          return;
+        }
+
+        txtChat.innerHTML += '<div class="info">Connecting...</div>';
+        txtStatus.innerHTML = 'Connecting...';
+        btnConnect.innerHTML = 'Disconnect';
+        btnConnect.className = 'border bg-orange';
+
+        edtUserName.setAttribute('readonly', true);
+        edtMessage.setAttribute('readonly', true);
+        btnSend.setAttribute('disabled', true);
+
+        const userName = edtUserName.value;
+        const isSecure = location.protocol === 'https:';
+        const url = (isSecure ? 'wss://' : 'ws://') + location.host + '/api/ws?userName=' + userName;
+
+        ws = new WebSocket(url);
+        ws.addEventListener('open', onOpen);
+        ws.addEventListener('message', onMessage);
+        ws.addEventListener('close', onClose);
+        ws.addEventListener('error', onError);
+
+        ws.userName = userName;
+      }
+
+      function onOpen() {
+        txtChat.innerHTML += '<div class="info">Connected</div>';
+        txtStatus.innerHTML = 'Connected as ' + ws.userName;
+        btnConnect.innerHTML = 'Disconnect';
+        btnConnect.className = 'border bg-orange';
+
+        edtUserName.setAttribute('readonly', true);
+        edtMessage.removeAttribute('readonly');
+        btnSend.removeAttribute('disabled');
+      }
+
+      function onMessage(event) {
+        const message = typeof event.data === 'string' && event.data.startsWith('{') ? JSON.parse(event.data) : false;
+        if (!message) return;
+
+        txtChat.innerHTML += message.userName !== 'Server' ? `
+<div class="container border-group flex message">
+  <div class="border">${message.userName}</div>
+  <div class="border flex-1">${message.text}</div>
+  <div class="border info">${message.timestamp}</div>
+</div>` : `<div class="info">Server: ${message.text}</div>`;
+        scrollToBottom();
+      }
+
+      function onClose() {
+        txtChat.innerHTML += '<div class="info">Disconnected!</div>';
+        txtStatus.innerHTML = 'Not Connected';
+        btnConnect.innerHTML = 'Connect';
+        btnConnect.className = 'border bg-blue';
+
+        edtUserName.removeAttribute('readonly');
+        edtMessage.setAttribute('readonly', true);
+        btnSend.setAttribute('disabled', true);
+      }
+      function onError(event) {
+        txtChat.innerHTML += `<div class="error">Error: ${event.data}</div>`;
+      }
+
+      function sendMessage(event) {
+        if (!ws) return;
+
+        const text = edtMessage.value;
+        if (!text) return;
+
+        ws.send(JSON.stringify(text));
+        edtMessage.value = '';
+      }
+
+      function scrollToBottom() {
+        txtChat.scrollTop = txtChat.scrollHeight;
+      }
+    </script>
+  </body>
+</html>
