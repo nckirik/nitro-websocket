@@ -34,19 +34,12 @@
       btnConnect.addEventListener('click', connect);
       btnSend.addEventListener('click', sendMessage);
 
-      (async () => {
-        try {
-          const response = await fetch('https://randomuser.me/api');
-          const { name } = (await response.json()).results[0];
-          if (!name) return;
-          edtUserName.value = name.title + ' ' + name.first + ' ' + name.last;
-        } catch (err) {
-          console.log('cannot fetch ip', err);
-        }
-      })();
-
       function connect() {
-        if (ws) return ws.close();
+        if (ws) {
+          ws?.close();
+          ws = undefined;
+          return;
+        }
 
         txtChat.innerHTML += '<div class="info">Connecting...</div>';
         txtStatus.innerHTML = 'Connecting...';
@@ -56,12 +49,6 @@
         edtUserName.setAttribute('readonly', true);
         edtMessage.setAttribute('readonly', true);
         btnSend.setAttribute('disabled', true);
-
-        edtMessage.addEventListener('keyup', (event) => {
-          if (event.key === 'Enter') {
-            sendMessage(event);
-          }
-        });
 
         const userName = edtUserName.value;
         const isSecure = location.protocol === 'https:';
@@ -91,15 +78,12 @@
         const message = typeof event.data === 'string' && event.data.startsWith('{') ? JSON.parse(event.data) : false;
         if (!message) return;
 
-        txtChat.innerHTML +=
-          message.userName !== 'Server'
-            ? `
-      <div class="container border-group flex message">
-        <div class="border">${message.userName}</div>
-        <div class="border flex-1">${message.text}</div>
-        <div class="border info">${message.timestamp}</div>
-      </div>`
-            : `<div class="info">Server: ${message.text}</div>`;
+        txtChat.innerHTML += message.userName !== 'Server' ? `
+<div class="container border-group flex message">
+  <div class="border">${message.userName}</div>
+  <div class="border flex-1">${message.text}</div>
+  <div class="border info">${message.timestamp}</div>
+</div>` : `<div class="info">Server: ${message.text}</div>`;
         scrollToBottom();
       }
 
@@ -112,8 +96,6 @@
         edtUserName.removeAttribute('readonly');
         edtMessage.setAttribute('readonly', true);
         btnSend.setAttribute('disabled', true);
-
-        ws = undefined;
       }
       function onError(event) {
         txtChat.innerHTML += `<div class="error">Error: ${event.data}</div>`;
@@ -125,9 +107,8 @@
         const text = edtMessage.value;
         if (!text) return;
 
-        ws.send(text);
+        ws.send(JSON.stringify(text));
         edtMessage.value = '';
-        edtMessage.focus();
       }
 
       function scrollToBottom() {
