@@ -25,7 +25,7 @@ export default defineWebSocketHandler({
 
     const serverMsg = { userName: 'Server', text: '', timestamp: new Date() } as ChatMessage;
     const welcomeMsg = { ...serverMsg, text: `Hello ${userName}! There are currently ${stats.online} users online` } as ChatMessage;
-    const joinedMsg = { ...serverMsg, text: `${peer} joined!` } as ChatMessage;
+    const joinedMsg = { ...serverMsg, text: `${userName} (${peer}) joined!` } as ChatMessage;
 
     peer.send(welcomeMsg);
     peer.subscribe('chat');
